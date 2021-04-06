@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+
+<!-- jQuery library -->
+<script
+	src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+<script type="text/javascript">
+	
+	var localstream; //글로벌 변수로 선언
+
+	$(document).ready(function() {
+		$("#onBtn").click(function() {
+			navigator.getUserMedia = navigator.getUserMedia // getUserMedia객체를 찾아서 할당하고,  
+					|| navigator.webkitGetUserMedia // 이런 이름이 없으면 webkitGetUserMedia을 찾아서 할당하고,
+					|| navigator.mozGetUserMedia; // 그것도 없으면 mozGetUserMedia을 찾아서 할당  
+			if (navigator.getUserMedia) { //그 객체가 있으면  
+				navigator.getUserMedia({
+					audio : false, 
+					video : true //비디오를 활성화시켜서 
+				}, //조건
+				function(stream) { //성공시 콜백함수
+					//카메라 접근 성공
+					//alert("ok");
+					video = document.querySelector('video'); //video 자리에 
+					video.srcObject = stream; //그 소스를 stream 이라 하고  
+					localstream = stream; // 
+					
+					video.onloadedmetadata = function(e) {
+						video.play();
+					}
+				}, function() { //실패시 콜백함수
+					//카메라 접근 에러
+					alert("카메라 접근 실패. 웹캠을 확인해 주세요.");
+				});
+
+			}
+		}); // 카메라 켜기 버튼 처리 
+
+		$("#pauseBtn").click(function() {
+			video.pause();
+			
+			localstream.getTracks()[0].stop(); //트랙 0번째에 들어와 있는 것을 멈추고 
+
+			var canvas = document.getElementById("drawCanvas"); //캔버스에다가 
+			var context = canvas.getContext("2d"); //캔버스를 2d형태로 만들고  
+
+			context.drawImage(video, 0, 0, 320, 240); //그 컨텍스트에 pause된 비디오의 이미지를 그리기 
+
+			//이미지를 서버로 전송하기 위한 전처리 
+			const imgBase64 = canvas.toDataURL('image/jpeg','multipart/form-data');
+			const decodImg = atob(imgBase64.split(',')[1]); // 콤마를 기준으로 1번이 실제 이미지-이미지바이너리데이터를 텍스트형태로 처리
+
+			let array = []; // 변환된 텍스트를 배열에 넣는다 
+			for (let i = 0; i < decodImg.length; i++) { 
+				array.push(decodImg.charCodeAt(i)); //캐릭터데이터를 배열에 push 
+			}
+
+			const file = new Blob([ new Uint8Array(array) ], { //binary large object라는 브라우저 내장객체를 생성하고 이미지를 넣어줌
+				type : 'image/jpeg' //타입은 이미지 - 배열 형태로 만들어서 전달 
+			});
+			const fileName = 'web_snapshot_'+Date.now()+'.jpg'; // 유동적인 파일 이름 부여 
+			let formData = new FormData(); //내장객체 
+			formData.append('file', file, fileName);  //이름이 file로 넘어감 - 컨트롤러에서 file파라미더로 받음
+			
+			//서버로 보내기 
+			$.ajax({
+				type : 'post',
+				url : '../upload', //이 주소로 보냄 
+				cache : false, //캐시 하지 말고 
+				data : formData, //파일을 가지고 있는 이 데이터를 보냄 
+				processData : false, 
+				contentType : false,
+				success : function(data) { // 성공하면 알림 띄우기 
+					alert('Uploaded !!')
+				}
+			})
+		});
+		
+		$("#offBtn").click(function(){
+			video.src=""; // video객체에는 stop메소드가 없음. stop효과를 주기 위함 
+		}); // end offBtn
+		
+	}); //end ready
+</script>
+
+
+</head>
+<body>
+	<center>
+		<video src="" controls="controls" width="320" height="240"></video>
+		<canvas width="320" height="240" style="border: 1px solid black" id = drawCanvas>
+		이 문장은 사용자의 웹브라우저가 canvas요소를 지원하지 않을 때 나타납니다. 
+		</canvas>
+		<br> 
+		<input type="button" value="카메라 켜기" id="onBtn"> 
+		<input type="button" value="캡쳐" id="pauseBtn"> 
+		<input type="button" id="offBtn" value="카메라 끄기">
+
+	</center>
+
+</body>
+</html>
