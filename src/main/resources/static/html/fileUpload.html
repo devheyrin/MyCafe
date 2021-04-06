@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+<script
+	src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script type="text/javascript">
+	$(document).ready(function() {
+		$("#uploadBtn").click(function() {
+
+			let formData = new FormData();
+			formData.append('file', $("#myFileInput")[0].files[0]);
+			// (파라미터이름, 파일의 값. 파일의 값은 input type="file"로부터 들어옴)
+
+			$.ajax({
+				type : 'post',
+				url : '../upload',
+				cache : false,
+				data : formData,
+				processData : false,
+				contentType : false,
+				success : function(data) {
+					alert('Uploaded !!');
+				}
+			});
+		});
+	});
+</script>
+</head>
+<body>
+	
+		<input type="file" id="myFileInput" name="file">
+		<!-- 파일 선택 -->
+		<input type="button" value="전송" id="uploadBtn">
+
+</body>
+</html>
